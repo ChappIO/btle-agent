@@ -1,0 +1,16 @@
+[Unit]
+Description=Provide all BTLE features to my home automation
+After=network.target bluetooth.service
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/opt/btle-agent
+ExecStart=/opt/btle-agent/btle-agent -broker tcp://127.0.0.1:1883
+StandardOutput=null
+StandardError=journal
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
