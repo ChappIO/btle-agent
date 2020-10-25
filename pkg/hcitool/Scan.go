@@ -16,8 +16,19 @@ type Device struct {
 	Name string
 }
 
-func Scan(client mqtt.Client) error {
-	log.Printf("Scanning for new devices for 1 minute")
+func Init(client mqtt.Client) error {
+	token := client.Subscribe("agents/btle/scan", 0, func(client mqtt.Client, message mqtt.Message) {
+		log.Printf("%s: %s", message.Topic(), string(message.Payload()))
+		err := scan(client)
+		if err != nil {
+			log.Printf("SCAN ERROR: %s", err)
+		}
+	})
+	return token.Error()
+}
+
+func scan(client mqtt.Client) error {
+	log.Printf("Scanning for new devices for 30 seconds...")
 
 	cmd := exec.Command("hcitool", "lescan")
 	out, err := cmd.StdoutPipe()
@@ -35,8 +46,7 @@ func Scan(client mqtt.Client) error {
 	defer cmd.Process.Signal(os.Interrupt)
 
 	go func() {
-		// stop after 1 minute
-		time.Sleep(10 * time.Second)
+		time.Sleep(30 * time.Second)
 		_ = cmd.Process.Signal(os.Interrupt)
 	}()
 
@@ -44,7 +54,7 @@ func Scan(client mqtt.Client) error {
 	log.Printf("Scan started...")
 	for scan.Scan() {
 		line := scan.Text()
-		if line == "LE Scan..." {
+		if line == "LE Scan ..." {
 			continue
 		}
 		parts := strings.SplitN(scan.Text(), " ", 2)
@@ -59,7 +69,12 @@ func Scan(client mqtt.Client) error {
 			Mac:  addr,
 			Name: name,
 		}
-		log.Printf("Found %s %s", dev.Name, dev.Mac)
+
+		topic := fmt.Sprintf("bluetoothle/%s", strings.ReplaceAll(strings.ToLower(dev.Mac), ":", ""))
+		client.Publish(topic+"/$name", 2, true, dev.Name)
+		client.Publish(topic+"/$timestamp", 2, true, fmt.Sprintf("%d", time.Now().Unix()))
+		client.Publish(topic+"/$mac", 2, true, dev.Mac)
+		log.Printf("found and reported %s %s", dev.Name, dev.Mac)
 	}
 
 	errScan := bufio.NewScanner(errPipe)

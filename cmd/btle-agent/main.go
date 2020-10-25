@@ -1,8 +1,9 @@
 package main
 
 import (
+	"btle-agent/pkg/config"
 	"btle-agent/pkg/hcitool"
-	"flag"
+	"btle-agent/pkg/miflora"
 	"github.com/eclipse/paho.mqtt.golang"
 	"log"
 	"os"
@@ -11,14 +12,8 @@ import (
 )
 
 func main() {
-	broker := flag.String("broker", "tcp://127.0.0.1:1883", "The broker url.")
-	//adapter := flag.String("adapter", "hci0", "the bluetooth adapter")
-	flag.Parse()
-
 	opts := mqtt.NewClientOptions()
-	opts.ClientID = "btle-agent"
-	opts.AutoReconnect = true
-	opts.AddBroker(*broker)
+	opts.AddBroker(*config.Broker)
 	client := mqtt.NewClient(opts)
 	log.Printf("connecting to %s...", opts.Servers[0])
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
@@ -28,14 +23,12 @@ func main() {
 	}
 	defer client.Disconnect(250)
 
-	client.Subscribe("agents/btle/scan", 0, func(client mqtt.Client, message mqtt.Message) {
-		log.Printf("%s: %s", message.Topic(), string(message.Payload()))
-		err := hcitool.Scan(client)
-		log.Println("done?")
-		if err != nil {
-			log.Printf("SCAN ERROR: %s", err)
-		}
-	})
+	if err := miflora.Init(client); err != nil {
+		panic(err)
+	}
+	if err := hcitool.Init(client); err != nil {
+		panic(err)
+	}
 
 	// wait for kill signal
 	sigs := make(chan os.Signal, 1)
