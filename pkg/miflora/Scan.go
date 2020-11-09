@@ -42,6 +42,7 @@ func Init(client mqtt.Client) error {
 		return token.Error()
 	}
 	go func() {
+		time.Sleep(1 * time.Minute)
 		for client.IsConnected() {
 			err := scan(client, *config.Adapter)
 			if err != nil {
