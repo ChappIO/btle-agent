@@ -23,10 +23,10 @@ func main() {
 	}
 	defer client.Disconnect(250)
 
-	if err := miflora.Init(client); err != nil {
+	if err := hcitool.Init(client); err != nil {
 		panic(err)
 	}
-	if err := hcitool.Init(client); err != nil {
+	if err := miflora.Init(client); err != nil {
 		panic(err)
 	}
 

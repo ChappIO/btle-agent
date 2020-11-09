@@ -24,6 +24,14 @@ func Init(client mqtt.Client) error {
 			log.Printf("SCAN ERROR: %s", err)
 		}
 	})
+	if token.Error() == nil {
+		go func() {
+			err := scan(client)
+			if err != nil {
+				log.Printf("SCAN ERROR: %s", err)
+			}
+		}()
+	}
 	return token.Error()
 }
 
