@@ -102,7 +102,7 @@ func scan(client mqtt.Client, adapter string) error {
 		topic := "miflora/" + id
 
 		client.Publish(topic+"/$firmware", 0, true, firmware.Version)
-		client.Publish(topic+"/$timestamp", 0, true, fmt.Sprintf("%d", time.Now().UnixNano() / 1000))
+		client.Publish(topic+"/$timestamp", 0, true, fmt.Sprintf("%d", time.Now().UnixNano() / 1000000))
 		client.Publish(topic+"/battery", 0, true, fmt.Sprintf("%d", firmware.Battery))
 		client.Publish(topic+"/temperature", 0, true, fmt.Sprintf("%f", sensors.Temperature))
 		client.Publish(topic+"/conductivity", 0, true, fmt.Sprintf("%d", sensors.Conductivity))
