@@ -2,7 +2,6 @@ package main
 
 import (
 	"btle-agent/pkg/config"
-	"btle-agent/pkg/hcitool"
 	"btle-agent/pkg/miflora"
 	"github.com/eclipse/paho.mqtt.golang"
 	"log"
@@ -23,9 +22,6 @@ func main() {
 	}
 	defer client.Disconnect(250)
 
-	if err := hcitool.Init(client); err != nil {
-		panic(err)
-	}
 	if err := miflora.Init(client); err != nil {
 		panic(err)
 	}

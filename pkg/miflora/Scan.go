@@ -12,26 +12,9 @@ import (
 )
 
 var lock = sync.Mutex{}
-var addresses = make(map[string]bool)
 
 func Init(client mqtt.Client) error {
-	token := client.Subscribe("bluetoothle/+/$name", 0, func(client mqtt.Client, message mqtt.Message) {
-		lock.Lock()
-		defer lock.Unlock()
-		name := string(message.Payload())
-		if name != "Flower care" {
-			return
-		}
-		topicParts := strings.Split(message.Topic(), "/")
-		id := topicParts[1]
-		mac := id[0:2] + ":" + id[2:4] + ":" + id[4:6] + ":" + id[6:8] + ":" + id[8:10] + ":" + id[10:12]
-		addresses[mac] = true
-	})
-	if token.Error() != nil {
-		return token.Error()
-	}
-
-	token = client.Subscribe("agents/btle/miflora", 0, func(client mqtt.Client, message mqtt.Message) {
+	token := client.Subscribe("agents/btle/miflora", 0, func(client mqtt.Client, message mqtt.Message) {
 		log.Printf("%s: %s", message.Topic(), string(message.Payload()))
 		err := scan(client, *config.Adapter)
 		if err != nil {
@@ -42,7 +25,6 @@ func Init(client mqtt.Client) error {
 		return token.Error()
 	}
 	go func() {
-		time.Sleep(1 * time.Minute)
 		for client.IsConnected() {
 			err := scan(client, *config.Adapter)
 			if err != nil {
@@ -80,10 +62,15 @@ func scan(client mqtt.Client, adapter string) error {
 	lock.Lock()
 	defer lock.Unlock()
 
-	log.Printf("found %d sensors", len(addresses))
+	addresses := strings.Split(*config.MifloraAddress, ",")
+	for i, address := range addresses {
+		addresses[i] = strings.ToUpper(strings.TrimSpace(address))
+	}
+
+	log.Printf("scanning %d sensors", len(addresses))
 
 	// process them
-	for address := range addresses {
+	for _ ,address := range addresses {
 		log.Printf("fetching firmware info for %s...", address)
 		id := strings.ToLower(strings.ReplaceAll(address, ":", ""))
 		dev := mifloraC.NewMiflora(address, adapter)
